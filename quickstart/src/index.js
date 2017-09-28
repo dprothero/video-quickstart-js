@@ -39,8 +39,10 @@ function detachParticipantTracks(participant) {
 // from the room, if joined.
 window.addEventListener('beforeunload', leaveRoomIfJoined);
 
+var tokenUrl = window.prompt('Enter token URL:', '');
+
 // Obtain a token from the server in order to connect to the Room.
-$.getJSON('/token', function(data) {
+$.getJSON(tokenUrl, function(data) {
   identity = data.identity;
   document.getElementById('room-controls').style.display = 'block';
 
@@ -55,7 +57,8 @@ $.getJSON('/token', function(data) {
     log("Joining room '" + roomName + "'...");
     var connectOptions = {
       name: roomName,
-      logLevel: 'debug'
+      logLevel: 'debug',
+      environment: 'stage'
     };
 
     if (previewTracks) {

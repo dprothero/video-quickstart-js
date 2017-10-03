@@ -6,18 +6,22 @@ var activeRoom;
 var previewTracks;
 var identity;
 var roomName;
+var localAudioTrack;
 
 // Attach the Tracks to the DOM.
-function attachTracks(tracks, container) {
+function attachTracks(tracks, container, isLocalParticipant) {
   tracks.forEach(function(track) {
     container.appendChild(track.attach());
+    if(isLocalParticipant && track.kind === "audio") {
+      localAudioTrack = track;
+    }
   });
 }
 
 // Attach the Participant's Tracks to the DOM.
-function attachParticipantTracks(participant, container) {
+function attachParticipantTracks(participant, container, isLocalParticipant) {
   var tracks = Array.from(participant.tracks.values());
-  attachTracks(tracks, container);
+  attachTracks(tracks, container, isLocalParticipant);
 }
 
 // Detach the Tracks from the DOM.
@@ -55,10 +59,18 @@ $.getJSON(tokenUrl, function(data) {
     }
 
     log("Joining room '" + roomName + "'...");
+
+    var environment = 'prod';
+    if (tokenUrl.includes('.stage.')) {
+      environment = 'stage';
+    } else if(tokenUrl.includes('.dev.')) {
+      environment = 'dev';
+    }
+
     var connectOptions = {
       name: roomName,
       logLevel: 'debug',
-      environment: 'stage'
+      environment: environment
     };
 
     if (previewTracks) {
@@ -77,6 +89,15 @@ $.getJSON(tokenUrl, function(data) {
     log('Leaving room...');
     activeRoom.disconnect();
   };
+
+  // Bind button to mute audio.
+  document.getElementById('button-mute').onclick = function() {
+    if(localAudioTrack) {
+      log('Muting you...');
+      localAudioTrack.enable(false);
+      document.getElementById('button-mute').innerText = 'Unmute';
+    }
+  };
 });
 
 // Successfully connected!
@@ -86,11 +107,12 @@ function roomJoined(room) {
   log("Joined as '" + identity + "'");
   document.getElementById('button-join').style.display = 'none';
   document.getElementById('button-leave').style.display = 'inline';
-
+  document.getElementById('button-mute').style.display = 'inline';
+  
   // Attach LocalParticipant's Tracks, if not already attached.
   var previewContainer = document.getElementById('local-media');
   if (!previewContainer.querySelector('video')) {
-    attachParticipantTracks(room.localParticipant, previewContainer);
+    attachParticipantTracks(room.localParticipant, previewContainer, true);
   }
 
   // Attach the Tracks of the Room's Participants.
@@ -138,6 +160,7 @@ function roomJoined(room) {
     activeRoom = null;
     document.getElementById('button-join').style.display = 'inline';
     document.getElementById('button-leave').style.display = 'none';
+    document.getElementById('button-mute').style.display = 'none';
   });
 }
 
